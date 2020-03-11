@@ -1,11 +1,90 @@
-from collections import namedtuple
+"""COVID-19 Report
+
+Usage:
+    __name__ [-l | -w] [-h | -c]
+
+Options:
+    -l    use local data from data/ directory
+    -w    pull data from web APIs
+    -h    print human-readable report
+    -c    print CSV report
+"""
+
+from collections import Counter, namedtuple
+from dataclasses import dataclass
 from itertools import chain
 import json
 from typing import Any, Dict, Set
 
+from docopt import docopt
 import requests
 
-FROM_WEB = False
+A_LOT = 999_999_999_999
+
+Location = namedtuple("Location", ["name", "code"])
+Country = namedtuple("Country", ["name", "code", "population"])
+DataPoint = namedtuple("DataPoint", ["confirmed", "deaths", "recovered"])
+
+
+@dataclass(order=True)
+class Report:
+    country_name: str
+    population: int
+    confirmed: int
+    deaths: int
+    recovered: int
+
+    @property
+    def confirmed_pct(self) -> float:
+        return 100 * self.confirmed / self.population
+
+    @property
+    def confirmed_freq(self) -> int:
+        ratio = self.confirmed / self.population
+        if ratio:
+            return int(1 / ratio)
+        else:
+            return A_LOT
+
+    @property
+    def deaths_pct(self) -> float:
+        return 100 * self.deaths / self.population
+
+    @property
+    def recovered_pct(self) -> float:
+        return 100 * self.recovered / self.population
+
+    @staticmethod
+    def csv_header() -> str:
+        return "country_name,population,confirmed,confirmed_pct,confirmed_freq,deaths,deaths_pct,recovered,recovered_pct"
+
+    def csv(self) -> str:
+        return ",".join(
+            map(
+                str,
+                [
+                    self.country_name,
+                    self.population,
+                    self.confirmed,
+                    self.confirmed_pct,
+                    self.confirmed_freq,
+                    self.deaths,
+                    self.deaths_pct,
+                    self.recovered,
+                    self.recovered_pct,
+                ],
+            )
+        )
+
+    def __str__(self) -> str:
+        return f"""
+{self.country_name}
+    population: {self.population}
+    confirmed: {self.confirmed} ({self.confirmed_pct:.6f}% = 1 per {self.confirmed_freq})
+    deaths: {self.deaths} ({self.deaths_pct:.6f}%)
+    recovered: {self.recovered} ({self.recovered_pct:.6f}%)
+    """.strip()
+
 
 CORONA_URL = "https://coronavirus-tracker-api.herokuapp.com/all"
 COUNTRY_CODE_URL = "https://restcountries.eu/rest/v2/alpha/"
@@ -13,6 +92,20 @@ COUNTRY_NAME_URL = "https://restcountries.eu/rest/v2/name/"
 
 COVID_FILE = "data/covid.json"
 COUNTRIES_FILE = "data/countries.json"
+
+
+IGNORE_LOCATIONS: Set[Location] = {
+    Location("Others", "XX"),
+    Location("occupied Palestinian territory", "XX"),
+    Location("Channel Islands", "XX"),
+}
+
+FIX_LOCATIONS: Dict[Location, Location] = {
+    Location("Republic of Korea", "XX"): Location("South Korea", "KR"),
+    Location("Hong Kong SAR", "XX"): Location("Honk Kong", "HK"),
+    Location("Taipei and environs", "XX"): Location("Taiwan", "TW"),
+    Location(name="Macao SAR", code="XX"): Location("Macau", "MO"),
+}
 
 
 def save_data(data: Any, filename: str):
@@ -25,8 +118,8 @@ def load_data(filename: str) -> Any:
         return json.load(f)
 
 
-def get_covid_data() -> dict:
-    if FROM_WEB:
+def get_covid_data(from_web: bool) -> dict:
+    if from_web:
         r = requests.get(CORONA_URL)
         data = r.json()
         save_data(data, COVID_FILE)
@@ -45,23 +138,6 @@ def load_countries_data() -> Any:
     for location, country in data:
         known_countries[Location(*location)] = Country(*country)
     return known_countries
-
-
-Location = namedtuple("Location", ["name", "code"])
-Country = namedtuple("Country", ["name", "code", "population"])
-
-IGNORE_LOCATIONS: Set[Location] = {
-    Location("Others", "XX"),
-    Location("occupied Palestinian territory", "XX"),
-    Location("Channel Islands", "XX"),
-}
-
-FIX_LOCATIONS: Dict[Location, Location] = {
-    Location("Republic of Korea", "XX"): Location("South Korea", "KR"),
-    Location("Hong Kong SAR", "XX"): Location("Honk Kong", "HK"),
-    Location("Taipei and environs", "XX"): Location("Taiwan", "TW"),
-    Location(name="Macao SAR", code="XX"): Location("Macau", "MO"),
-}
 
 
 def get_country_details(location: Location) -> Country:
@@ -97,8 +173,8 @@ def get_country_details(location: Location) -> Country:
     return Country(location.name, country_code, population)
 
 
-def build_countries(data_locations) -> Dict[Location, Country]:
-    if not FROM_WEB:
+def build_countries(data_locations, from_web: bool) -> Dict[Location, Country]:
+    if not from_web:
         return load_countries_data()
 
     known_countries: Dict[Location, Country] = {}
@@ -117,67 +193,65 @@ def build_countries(data_locations) -> Dict[Location, Country]:
 
         known_countries[location] = get_country_details(location)
 
-    if FROM_WEB:
+    if from_web:
         save_countries_data(known_countries)
 
     return known_countries
 
 
-covid_data = get_covid_data()
-confirmed = covid_data["confirmed"]["locations"]
-deaths = covid_data["deaths"]["locations"]
-recovered = covid_data["recovered"]["locations"]
+def report(from_web: bool, print_csv: bool):
+    covid_data = get_covid_data(from_web)
+    confirmed = covid_data["confirmed"]["locations"]
+    deaths = covid_data["deaths"]["locations"]
+    recovered = covid_data["recovered"]["locations"]
+    data_locations = list(chain.from_iterable([confirmed, deaths, recovered]))
 
-known_countries = build_countries(chain.from_iterable([confirmed, deaths, recovered]))
+    known_countries = build_countries(data_locations, from_web)
 
-for location in sorted(known_countries):
-    country = known_countries[location]
-    print(country.name, country.population)
+    confirmed_count: Counter = Counter()
+    deaths_count: Counter = Counter()
+    recovered_count: Counter = Counter()
 
+    for data_location in confirmed:
+        location = Location(data_location["country"], data_location["country_code"])
+        confirmed_count[location] += data_location["latest"]
 
-"""
-Numbers = namedtuple("Numbers", ["population", "confirmed", "deaths", "recovered"])
+    for data_location in deaths:
+        location = Location(data_location["country"], data_location["country_code"])
+        deaths_count[location] += data_location["latest"]
 
-data = requests.get(CORONA_URL).json()
-confirmed = data["confirmed"]
+    for data_location in recovered:
+        location = Location(data_location["country"], data_location["country_code"])
+        recovered_count[location] += data_location["latest"]
 
-countries = set()
+    from pprint import pprint  # noqa
 
-confirmed_counts: Counter = Counter()
+    reports = []
+    for location, country in known_countries.items():
+        report = Report(
+            country.name,
+            country.population,
+            confirmed_count[location],
+            deaths_count[location],
+            recovered_count[location],
+        )
+        reports.append(report)
 
-for loc in confirmed["locations"]:
-    country_name = loc["country"]
-    country_code = loc["country_code"]
-    population = 0
-
-    if country_code == "XX":
-        r = requests.get(COUNTRY_NAME_URL + country_name)
-        if r.ok:
-            country_data = r.json()
-            if isinstance(country_data, list):
-                if len(country_data) > 1:
-                    names = [country["name"] for country in country_data]
-                    print(
-                        f"Multiple countries returned for name {country_name}: {names}"
-                    )
-                else:
-                    population = country_data[0]["population"]
-            else:
-                population = country_data["population"]
+    if print_csv:
+        print(Report.csv_header())
+        for report in sorted(reports, key=lambda r: r.country_name):
+            print(report.csv())
     else:
-        r = requests.get(COUNTRY_CODE_URL + country_code)
-        if r.ok:
-            country_data = r.json()
-            population = country_data["population"]
+        for report in sorted(reports, key=lambda r: r.confirmed_freq, reverse=True):
+            print(report)
 
-    country = Country(country_name, country_code, population)
-    countries.add(country)
 
-    # confirmed_counts[loc["country"]] += loc["latest"]
+def main():
+    args = docopt(__doc__.replace("__name__", __name__))
+    from_web = args["-w"]
+    print_csv = args["-c"]
+    report(from_web, print_csv)
 
-# for country, cases in confirmed_counts.most_common(10):
-#     print(f"{country}: {cases}")
 
-for country in countries:
-    print(country)
-"""
+if __name__ == "__main__":
+    main()
