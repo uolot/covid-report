@@ -84,9 +84,14 @@ class Report:
         return f"""
 {self.country_name}
     population: {self.population}
-    confirmed: {self.confirmed} ({self.confirmed_pct:.6f}% of population = 1 per {self.confirmed_freq})
-    deaths: {self.deaths} ({self.deaths_pct:.6f}% of population, {self.deaths_confirmed_pct:.6f}% of confirmed cases)
-    recovered: {self.recovered} ({self.recovered_pct:.6f}% of population, {self.recovered_confirmed_pct:.6f}% of confirmed cases))
+    confirmed: {self.confirmed}
+        {self.confirmed_pct:.6f}% of population = 1 per {self.confirmed_freq}
+    deaths: {self.deaths}
+        {self.deaths_pct:.6f}% of population
+        {self.deaths_confirmed_pct:.6f}% of confirmed cases
+    recovered: {self.recovered}
+        {self.recovered_pct:.6f}% of population
+        {self.recovered_confirmed_pct:.6f}% of confirmed cases
     """.strip()
 
 
