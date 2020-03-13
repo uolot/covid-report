@@ -66,7 +66,7 @@ class Report:
 
     @staticmethod
     def csv_header() -> str:
-        return "country_name,population,confirmed,deaths,recovered"
+        return '"country_name",population,confirmed,deaths,recovered'
 
     def csv(self) -> str:
         fields = [
