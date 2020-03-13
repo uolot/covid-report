@@ -35,12 +35,16 @@ class Report:
     recovered: int
 
     @property
+    def population_fixed(self):
+        return self.population or 1
+
+    @property
     def confirmed_pct(self) -> float:
-        return 100 * self.confirmed / self.population
+        return 100 * self.confirmed / self.population_fixed
 
     @property
     def confirmed_freq(self) -> int:
-        ratio = self.confirmed / self.population
+        ratio = self.confirmed / self.population_fixed
         if ratio:
             return int(1 / ratio)
         else:
@@ -48,11 +52,11 @@ class Report:
 
     @property
     def deaths_pct(self) -> float:
-        return 100 * self.deaths / self.population
+        return 100 * self.deaths / self.population_fixed
 
     @property
     def recovered_pct(self) -> float:
-        return 100 * self.recovered / self.population
+        return 100 * self.recovered / self.population_fixed
 
     @staticmethod
     def csv_header() -> str:
@@ -98,6 +102,7 @@ IGNORE_LOCATIONS: Set[Location] = {
     Location("Others", "XX"),
     Location("occupied Palestinian territory", "XX"),
     Location("Channel Islands", "XX"),
+    Location(name="Cruise Ship", code="XX"),
 }
 
 FIX_LOCATIONS: Dict[Location, Location] = {
