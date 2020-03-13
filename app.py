@@ -68,25 +68,17 @@ class Report:
 
     @staticmethod
     def csv_header() -> str:
-        return "country_name,population,confirmed,confirmed_pct,confirmed_freq,deaths,deaths_pct,recovered,recovered_pct"
+        return "country_name,population,confirmed,deaths,recovered"
 
     def csv(self) -> str:
-        return ",".join(
-            map(
-                str,
-                [
-                    self.country_name,
-                    self.population,
-                    self.confirmed,
-                    self.confirmed_pct,
-                    self.confirmed_freq,
-                    self.deaths,
-                    self.deaths_pct,
-                    self.recovered,
-                    self.recovered_pct,
-                ],
-            )
-        )
+        fields = [
+            self.country_name,
+            self.population,
+            self.confirmed,
+            self.deaths,
+            self.recovered,
+        ]
+        return ",".join(map(str, fields))
 
     def __str__(self) -> str:
         return f"""
