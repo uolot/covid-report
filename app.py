@@ -55,8 +55,16 @@ class Report:
         return 100 * self.deaths / self.population_fixed
 
     @property
+    def deaths_confirmed_pct(self) -> float:
+        return 100 * self.deaths / self.confirmed
+
+    @property
     def recovered_pct(self) -> float:
         return 100 * self.recovered / self.population_fixed
+
+    @property
+    def recovered_confirmed_pct(self) -> float:
+        return 100 * self.recovered / self.confirmed
 
     @staticmethod
     def csv_header() -> str:
@@ -84,9 +92,9 @@ class Report:
         return f"""
 {self.country_name}
     population: {self.population}
-    confirmed: {self.confirmed} ({self.confirmed_pct:.6f}% = 1 per {self.confirmed_freq})
-    deaths: {self.deaths} ({self.deaths_pct:.6f}%)
-    recovered: {self.recovered} ({self.recovered_pct:.6f}%)
+    confirmed: {self.confirmed} ({self.confirmed_pct:.6f}% of population = 1 per {self.confirmed_freq})
+    deaths: {self.deaths} ({self.deaths_pct:.6f}% of population, {self.deaths_confirmed_pct:.6f}% of confirmed cases)
+    recovered: {self.recovered} ({self.recovered_pct:.6f}% of population, {self.recovered_confirmed_pct:.6f}% of confirmed cases))
     """.strip()
 
 
