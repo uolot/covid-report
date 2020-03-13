@@ -1,12 +1,10 @@
 """COVID-19 Report
 
 Usage:
-    __name__ [-l | -w] [-h | -c]
+    __file__ [-w] [-c]
 
 Options:
-    -l    use local data from data/ directory
     -w    pull data from web APIs
-    -h    print human-readable report
     -c    print CSV report
 """
 
@@ -257,7 +255,7 @@ def report(from_web: bool, print_csv: bool):
 
 
 def main():
-    args = docopt(__doc__.replace("__name__", __name__))
+    args = docopt(__doc__.replace("__file__", __file__))
     from_web = args["-w"]
     print_csv = args["-c"]
     report(from_web, print_csv)
