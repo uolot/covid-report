@@ -37,6 +37,10 @@ class Report:
         return self.population or 1
 
     @property
+    def confirmed_fixed(self):
+        return self.confirmed or 1
+
+    @property
     def confirmed_pct(self) -> float:
         return 100 * self.confirmed / self.population_fixed
 
@@ -54,7 +58,7 @@ class Report:
 
     @property
     def deaths_confirmed_pct(self) -> float:
-        return 100 * self.deaths / self.confirmed
+        return 100 * self.deaths / self.confirmed_fixed
 
     @property
     def recovered_pct(self) -> float:
@@ -62,7 +66,7 @@ class Report:
 
     @property
     def recovered_confirmed_pct(self) -> float:
-        return 100 * self.recovered / self.confirmed
+        return 100 * self.recovered / self.confirmed_fixed
 
     @staticmethod
     def csv_header() -> str:
