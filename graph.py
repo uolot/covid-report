@@ -17,10 +17,10 @@ import pygame
 SCREEN_SIZE = 1200, 900
 BOX_SIZE = 1100, 800
 BOX_RECT = (
-    (SCREEN_SIZE[0] - BOX_SIZE[0]) // 2,
-    (SCREEN_SIZE[1] - BOX_SIZE[1]) // 2,
-    BOX_SIZE[0],
-    BOX_SIZE[1],
+    (SCREEN_SIZE[0] - BOX_SIZE[0]) // 2 - 1,
+    (SCREEN_SIZE[1] - BOX_SIZE[1]) // 2 - 1,
+    BOX_SIZE[0] + 1,
+    BOX_SIZE[1] + 1,
 )
 BOX_AREA = BOX_SIZE[0] * BOX_SIZE[1]
 
